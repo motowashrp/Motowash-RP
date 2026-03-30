@@ -472,7 +472,15 @@
 import { initializeApp }           from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getDatabase, ref, set, get, onValue, update, remove }
                                    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
-import { firebaseConfig }          from "./firebase-config.js";
+const firebaseConfig = {
+  apiKey:            "AIzaSyAp5NCH-vV4RIUFuD3FQ0CRit-44_1gBHo",
+  authDomain:        "motowash-rp.firebaseapp.com",
+  databaseURL:       "https://motowash-rp-default-rtdb.firebaseio.com",
+  projectId:         "motowash-rp",
+  storageBucket:     "motowash-rp.firebasestorage.app",
+  messagingSenderId: "1076586851362",
+  appId:             "1:1076586851362:web:0205804af70f85c838ae7b"
+};
 
 // ── INIT ──────────────────────────────────
 const app = initializeApp(firebaseConfig);
