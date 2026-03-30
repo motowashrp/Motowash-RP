@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MotoWash RP — Sistema de Órdenes</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg:        #f5f4f0;
+      --surface:   #ffffff;
+      --border:    rgba(0,0,0,0.09);
+      --border2:   rgba(0,0,0,0.15);
+      --text:      #1a1a18;
+      --muted:     #6b6b67;
+      --accent:    #1a6b3c;
+      --accent-bg: #e8f5ee;
+      --accent-bd: #a8d8bc;
+      --warn:      #92510a;
+      --warn-bg:   #fdf0dc;
+      --warn-bd:   #e8c07a;
+      --danger:    #8b1f1f;
+      --danger-bg: #fdeaea;
+      --danger-bd: #e8a0a0;
+      --info:      #1a4a7a;
+      --info-bg:   #e8f0fa;
+      --info-bd:   #a0c0e8;
+      --radius:    10px;
+      --radius-lg: 16px;
+      --shadow:    0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      font-size: 15px;
+    }
+
+    /* ── TOP BAR ── */
+    .topbar {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 20px;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+    .topbar-brand {
+      font-weight: 600;
+      font-size: 15px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--text);
+    }
+    .topbar-brand .dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-bg);
+    }
+    .topbar-right { display: flex; align-items: center; gap: 10px; }
+    .user-pill {
+      font-size: 12px; font-weight: 500;
+      padding: 4px 12px; border-radius: 99px;
+      background: var(--accent-bg); color: var(--accent);
+      border: 1px solid var(--accent-bd);
+    }
+    .user-pill.op { background: var(--info-bg); color: var(--info); border-color: var(--info-bd); }
+
+    /* ── LAYOUT ── */
+    .shell { max-width: 900px; margin: 0 auto; padding: 20px 16px 60px; }
+
+    /* ── TABS ── */
+    .tabs {
+      display: flex; gap: 4px; margin-bottom: 20px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 4px;
+    }
+    .tab {
+      flex: 1; padding: 8px 4px;
+      border: none; background: transparent;
+      border-radius: 7px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px; font-weight: 500;
+      color: var(--muted); cursor: pointer;
+      transition: all .15s;
+      display: flex; align-items: center; justify-content: center; gap: 5px;
+    }
+    .tab:hover { background: var(--bg); color: var(--text); }
+    .tab.active { background: var(--text); color: #fff; }
+    .tab .cnt {
+      background: var(--warn-bg); color: var(--warn);
+      border-radius: 99px; padding: 0 6px;
+      font-size: 11px; line-height: 18px;
+    }
+    .tab.active .cnt { background: rgba(255,255,255,.2); color: #fff; }
+
+    .section { display: none; }
+    .section.active { display: block; }
+
+    /* ── CARDS ── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      margin-bottom: 16px;
+      box-shadow: var(--shadow);
+    }
+    .card-title {
+      font-size: 14px; font-weight: 600;
+      color: var(--muted); text-transform: uppercase;
+      letter-spacing: .06em; margin-bottom: 16px;
+    }
+
+    /* ── METRICS ── */
+    .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 20px; }
+    .metric {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      box-shadow: var(--shadow);
+    }
+    .metric-label { font-size: 12px; color: var(--muted); margin-bottom: 6px; font-weight: 500; }
+    .metric-val { font-size: 24px; font-weight: 600; color: var(--text); font-family: 'DM Mono', monospace; }
+    .metric-val.green { color: var(--accent); }
+
+    /* ── FORMS ── */
+    .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 14px; }
+    .field label { display: block; font-size: 12px; font-weight: 500; color: var(--muted); margin-bottom: 5px; }
+    .field input, .field select {
+      width: 100%; padding: 9px 12px;
+      border: 1px solid var(--border2);
+      border-radius: var(--radius);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px; color: var(--text);
+      background: var(--bg);
+      transition: border-color .15s, box-shadow .15s;
+      outline: none;
+    }
+    .field input:focus, .field select:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-bg);
+      background: var(--surface);
+    }
+
+    /* ── BUTTONS ── */
+    .btn {
+      padding: 9px 18px; border-radius: var(--radius);
+      border: 1px solid var(--border2);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px; font-weight: 500;
+      cursor: pointer; transition: all .15s;
+      background: var(--surface); color: var(--text);
+    }
+    .btn:hover { background: var(--bg); }
+    .btn-primary { background: var(--text); color: #fff; border-color: var(--text); }
+    .btn-primary:hover { opacity: .88; }
+    .btn-green { background: var(--accent-bg); color: var(--accent); border-color: var(--accent-bd); font-size: 13px; padding: 6px 14px; }
+    .btn-green:hover { background: #d0eddb; }
+    .btn-red { background: var(--danger-bg); color: var(--danger); border-color: var(--danger-bd); font-size: 13px; padding: 6px 14px; }
+    .btn-red:hover { background: #fad8d8; }
+    .btn-sm { font-size: 13px; padding: 6px 14px; }
+
+    /* ── TABLE ── */
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    thead th {
+      text-align: left; padding: 8px 10px;
+      font-size: 11px; font-weight: 600;
+      color: var(--muted); text-transform: uppercase;
+      letter-spacing: .05em;
+      border-bottom: 1px solid var(--border);
+    }
+    tbody td { padding: 11px 10px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr:hover { background: var(--bg); }
+    .td-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+    .total-row td { font-weight: 600; font-family: 'DM Mono', monospace; border-top: 2px solid var(--border2); }
+
+    /* ── BADGES ── */
+    .badge {
+      display: inline-block; padding: 3px 10px;
+      border-radius: 99px; font-size: 11px; font-weight: 600;
+    }
+    .badge-pend { background: var(--warn-bg); color: var(--warn); border: 1px solid var(--warn-bd); }
+    .badge-done { background: var(--accent-bg); color: var(--accent); border: 1px solid var(--accent-bd); }
+    .badge-admin { background: var(--info-bg); color: var(--info); border: 1px solid var(--info-bd); }
+    .badge-op { background: #f0edff; color: #4a3aaa; border: 1px solid #c0b8f0; }
+
+    /* ── EMPTY ── */
+    .empty {
+      text-align: center; padding: 40px 20px;
+      color: var(--muted); font-size: 14px;
+    }
+    .empty .icon { font-size: 36px; margin-bottom: 10px; opacity: .4; }
+
+    /* ── DATE NAV ── */
+    .date-nav { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
+    .date-label { font-size: 15px; font-weight: 600; }
+
+    /* ── LOGIN ── */
+    #login-screen {
+      min-height: 100vh; display: flex;
+      align-items: center; justify-content: center;
+      padding: 20px;
+    }
+    .login-box { width: 100%; max-width: 360px; }
+    .login-brand {
+      text-align: center; margin-bottom: 28px;
+    }
+    .login-brand h1 { font-size: 22px; font-weight: 600; margin-bottom: 4px; }
+    .login-brand p { font-size: 13px; color: var(--muted); }
+    .login-error {
+      background: var(--danger-bg); color: var(--danger);
+      border: 1px solid var(--danger-bd);
+      border-radius: var(--radius); padding: 10px 14px;
+      font-size: 13px; margin-top: 10px; display: none;
+    }
+
+    /* ── MODAL ── */
+    .modal-bg {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,.4); z-index: 200;
+      align-items: center; justify-content: center;
+      padding: 20px;
+    }
+    .modal-bg.open { display: flex; }
+    .modal {
+      background: var(--surface);
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border);
+      padding: 24px; width: 100%; max-width: 380px;
+      box-shadow: 0 20px 60px rgba(0,0,0,.15);
+    }
+    .modal h3 { font-size: 17px; font-weight: 600; margin-bottom: 16px; }
+    .modal-info {
+      background: var(--bg); border-radius: var(--radius);
+      padding: 12px 14px; font-size: 13px;
+      color: var(--muted); margin-bottom: 14px;
+      line-height: 1.7;
+    }
+    .modal-info strong { color: var(--text); }
+    .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 18px; }
+
+    /* ── SYNC ── */
+    .sync-bar {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 12px; color: var(--muted);
+      margin-bottom: 16px;
+    }
+    .sync-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }
+    .sync-dot.err { background: #e24b4a; }
+
+    /* ── CONFIG TABLE ── */
+    .config-row { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+    .config-row:last-child { border-bottom: none; }
+    .config-name { flex: 1; font-size: 14px; }
+    .config-price input { width: 110px; }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 600px) {
+      .tab { font-size: 12px; padding: 8px 2px; }
+      .tab span.lbl { display: none; }
+      .metrics { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════
+     LOGIN
+══════════════════════════════════════════ -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-brand">
+      <h1>MotoWash RP</h1>
+      <p>Sistema de órdenes y ventas</p>
+    </div>
+    <div class="card">
+      <div class="field" style="margin-bottom:12px;">
+        <label>Usuario</label>
+        <input id="l-user" type="text" placeholder="admin  ó  operario" autocomplete="username">
+      </div>
+      <div class="field" style="margin-bottom:16px;">
+        <label>Contraseña</label>
+        <input id="l-pass" type="password" placeholder="••••••••" autocomplete="current-password">
+      </div>
+      <button class="btn btn-primary" style="width:100%;" onclick="doLogin()">Ingresar</button>
+      <div class="login-error" id="l-err">Usuario o contraseña incorrectos.</div>
+    </div>
+    <p style="text-align:center;font-size:12px;color:var(--muted);margin-top:12px;">
+      Por defecto: <strong>admin / admin123</strong> &nbsp;·&nbsp; <strong>operario / moto123</strong>
+    </p>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     MAIN APP
+══════════════════════════════════════════ -->
+<div id="main-app" style="display:none;">
+  <div class="topbar">
+    <div class="topbar-brand">
+      <span class="dot"></span>
+      MotoWash RP
+    </div>
+    <div class="topbar-right">
+      <span id="user-pill" class="user-pill"></span>
+      <button class="btn btn-sm" onclick="doLogout()">Salir</button>
+    </div>
+  </div>
+
+  <div class="shell">
+    <div class="sync-bar">
+      <span class="sync-dot" id="sync-dot"></span>
+      <span id="sync-label">Conectando...</span>
+    </div>
+
+    <div class="tabs" id="tabs-bar"></div>
+
+    <!-- NUEVA ORDEN -->
+    <div id="tab-nueva" class="section">
+      <div class="card">
+        <div class="card-title">Nueva orden</div>
+        <div class="form-grid">
+          <div class="field">
+            <label>Placa / ID</label>
+            <input id="n-placa" type="text" placeholder="ABC123" oninput="this.value=this.value.toUpperCase()">
+          </div>
+          <div class="field">
+            <label>Tipo de vehículo</label>
+            <select id="n-tipo">
+              <option>Moto estándar</option>
+              <option>Moto deportiva</option>
+              <option>Scooter</option>
+              <option>ATV / Cuadrimoto</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Servicio</label>
+            <select id="n-srv" onchange="syncPrecio()"></select>
+          </div>
+          <div class="field">
+            <label>Precio (COP $)</label>
+            <input id="n-precio" type="number" min="0" step="500">
+          </div>
+          <div class="field">
+            <label>Notas</label>
+            <input id="n-notas" type="text" placeholder="Opcional...">
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="crearOrden()">Crear orden pendiente</button>
+      </div>
+    </div>
+
+    <!-- PENDIENTES -->
+    <div id="tab-pendientes" class="section">
+      <div class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+          <div class="card-title" style="margin:0;">Órdenes pendientes</div>
+          <button class="btn btn-sm" onclick="renderPendientes()">Actualizar</button>
+        </div>
+        <div class="table-wrap" id="tabla-pend"></div>
+      </div>
+    </div>
+
+    <!-- CERRADAS -->
+    <div id="tab-cerradas" class="section">
+      <div class="date-nav">
+        <button class="btn btn-sm" onclick="cambiarDia(-1)">← Anterior</button>
+        <span class="date-label" id="fecha-cerradas"></span>
+        <button class="btn btn-sm" onclick="cambiarDia(1)">Siguiente →</button>
+        <button class="btn btn-sm" onclick="histFecha=hoy();renderCerradas()">Hoy</button>
+      </div>
+      <div class="card">
+        <div class="table-wrap" id="tabla-cerradas"></div>
+      </div>
+    </div>
+
+    <!-- REPORTE -->
+    <div id="tab-reporte" class="section">
+      <div class="date-nav">
+        <button class="btn btn-sm" onclick="cambiarDiaRep(-1)">← Anterior</button>
+        <span class="date-label" id="fecha-reporte"></span>
+        <button class="btn btn-sm" onclick="cambiarDiaRep(1)">Siguiente →</button>
+        <button class="btn btn-sm" onclick="repFecha=hoy();renderReporte()">Hoy</button>
+      </div>
+      <div class="metrics" id="metricas-rep"></div>
+      <div class="card">
+        <div class="card-title">Detalle de ventas</div>
+        <div class="table-wrap" id="tabla-rep"></div>
+      </div>
+    </div>
+
+    <!-- CONFIG (solo admin) -->
+    <div id="tab-config" class="section">
+      <div class="card">
+        <div class="card-title">Servicios y tarifas</div>
+        <div id="lista-srvs"></div>
+        <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap;">
+          <div class="field" style="flex:1;min-width:140px;margin:0;">
+            <input id="c-nombre" type="text" placeholder="Nombre del servicio">
+          </div>
+          <div class="field" style="width:120px;margin:0;">
+            <input id="c-precio" type="number" placeholder="Precio">
+          </div>
+          <button class="btn btn-primary" onclick="addSrv()" style="align-self:flex-start;margin-top:0;">Agregar</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Cambiar contraseñas</div>
+        <div class="form-grid">
+          <div class="field">
+            <label>Nueva clave — Administrador</label>
+            <input id="pw-admin" type="password" placeholder="••••••••">
+          </div>
+          <div class="field">
+            <label>Nueva clave — Operario</label>
+            <input id="pw-op" type="password" placeholder="••••••••">
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="guardarClaves()">Guardar contraseñas</button>
+      </div>
+    </div>
+
+  </div><!-- /shell -->
+</div><!-- /main-app -->
+
+<!-- MODAL COBRO -->
+<div class="modal-bg" id="modal-pago">
+  <div class="modal">
+    <h3>Cobrar orden</h3>
+    <div class="modal-info" id="modal-info"></div>
+    <div class="field" style="margin-bottom:12px;">
+      <label>Método de pago</label>
+      <select id="m-pago">
+        <option>Efectivo</option>
+        <option>Nequi / Daviplata</option>
+        <option>Transferencia</option>
+        <option>Tarjeta</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Precio final (COP $)</label>
+      <input id="m-precio" type="number" min="0" step="500">
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="cerrarModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="cobrar()">Confirmar pago</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     FIREBASE SDK
+══════════════════════════════════════════ -->
+<script type="module">
+import { initializeApp }           from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getDatabase, ref, set, get, onValue, update, remove }
+                                   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+import { firebaseConfig }          from "./firebase-config.js";
+
+// ── INIT ──────────────────────────────────
+const app = initializeApp(firebaseConfig);
+const db  = getDatabase(app);
+
+// ── STATE ─────────────────────────────────
+let ordenes   = [];
+let servicios = [];
+let authCfg   = { admin: "admin123", operario: "moto123" };
+let currentUser = null;
+let histFecha   = hoy();
+let repFecha    = hoy();
+let pagoOrdenId = null;
+let unsubscribe = null;
+
+// ── HELPERS ───────────────────────────────
+window.hoy  = () => new Date().toISOString().slice(0, 10);
+window.hora = () => new Date().toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" });
+window.fmt  = n  => "$" + Number(n).toLocaleString("es-CO");
+window.fmtF = d  => { const [y,m,di] = d.split("-"); const ms = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"]; return `${di} ${ms[+m-1]} ${y}`; };
+window.nextNum = () => ordenes.length ? Math.max(...ordenes.map(o => o.num || 0)) + 1 : 1;
+window.histFecha = histFecha;
+window.repFecha  = repFecha;
+
+function setSyncStatus(ok) {
+  const dot = document.getElementById("sync-dot");
+  const lbl = document.getElementById("sync-label");
+  if (!dot) return;
+  dot.classList.toggle("err", !ok);
+  lbl.textContent = ok ? "Datos en tiempo real · Conectado" : "Sin conexión con Firebase";
+}
+
+// ── FIREBASE: CARGAR DATOS EN TIEMPO REAL ─
+function startListening() {
+  const root = ref(db, "/");
+  unsubscribe = onValue(root, snap => {
+    const data = snap.val() || {};
+    ordenes   = Object.values(data.ordenes   || {});
+    servicios = Object.values(data.servicios || {});
+    authCfg   = data.auth || { admin: "admin123", operario: "moto123" };
+    if (!servicios.length) {
+      servicios = [
+        { id: "s1", nombre: "Lavado básico",       precio: 8000  },
+        { id: "s2", nombre: "Lavado completo",      precio: 15000 },
+        { id: "s3", nombre: "Lavado + Encerado",    precio: 22000 },
+        { id: "s4", nombre: "Lavado motor",         precio: 25000 },
+        { id: "s5", nombre: "Detailing completo",   precio: 45000 },
+      ];
+      guardarServicios();
+    }
+    setSyncStatus(true);
+    poblarSelect();
+    refreshCurrentTab();
+    updateBadge();
+  }, () => setSyncStatus(false));
+}
+
+async function guardarOrden(o) {
+  await set(ref(db, `/ordenes/${o.id}`), o);
+}
+async function eliminarOrden(id) {
+  await remove(ref(db, `/ordenes/${id}`));
+}
+async function guardarServicios() {
+  const obj = {};
+  servicios.forEach(s => { obj[s.id] = s; });
+  await set(ref(db, "/servicios"), obj);
+}
+async function guardarAuth() {
+  await set(ref(db, "/auth"), authCfg);
+}
+
+// ── LOGIN / LOGOUT ────────────────────────
+window.doLogin = async () => {
+  const user = document.getElementById("l-user").value.trim().toLowerCase();
+  const pass = document.getElementById("l-pass").value;
+  const err  = document.getElementById("l-err");
+
+  // Cargar auth desde Firebase antes de validar
+  try {
+    const snap = await get(ref(db, "/auth"));
+    if (snap.exists()) authCfg = snap.val();
+  } catch(e) {}
+
+  const ok = (user === "admin"    && pass === authCfg.admin) ||
+             (user === "operario" && pass === authCfg.operario);
+  if (ok) {
+    currentUser = user;
+    err.style.display = "none";
+    document.getElementById("login-screen").style.display = "none";
+    document.getElementById("main-app").style.display    = "block";
+    setupTabs();
+    startListening();
+  } else {
+    err.style.display = "block";
+  }
+};
+
+window.doLogout = () => {
+  if (unsubscribe) unsubscribe();
+  currentUser = null;
+  document.getElementById("main-app").style.display    = "none";
+  document.getElementById("login-screen").style.display = "flex";
+  document.getElementById("l-pass").value = "";
+};
+
+// ── TABS ──────────────────────────────────
+function setupTabs() {
+  const pill = document.getElementById("user-pill");
+  const isAdmin = currentUser === "admin";
+  pill.textContent = isAdmin ? "Administrador" : "Operario";
+  pill.className   = isAdmin ? "user-pill" : "user-pill op";
+
+  const bar = document.getElementById("tabs-bar");
+  bar.innerHTML = "";
+  const defs = [
+    { id: "nueva",      lbl: "Nueva orden",   adminOnly: false },
+    { id: "pendientes", lbl: "Pendientes",     adminOnly: false, badge: true },
+    { id: "cerradas",   lbl: "Cerradas",       adminOnly: false },
+    { id: "reporte",    lbl: "Reporte diario", adminOnly: false },
+    { id: "config",     lbl: "Configuración",  adminOnly: true  },
+  ];
+  defs.forEach(d => {
+    if (d.adminOnly && !isAdmin) return;
+    const b = document.createElement("button");
+    b.className = "tab";
+    b.id = "tab-btn-" + d.id;
+    b.innerHTML = `<span class="lbl">${d.lbl}</span>` + (d.badge ? `<span class="cnt" id="badge-pend">0</span>` : "");
+    b.onclick = () => showTab(d.id);
+    bar.appendChild(b);
+  });
+  showTab("nueva");
+}
+
+window.showTab = t => {
+  document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
+  document.querySelectorAll(".tab").forEach(b => b.classList.remove("active"));
+  const sec = document.getElementById("tab-" + t);
+  const btn = document.getElementById("tab-btn-" + t);
+  if (sec) sec.classList.add("active");
+  if (btn) btn.classList.add("active");
+  if (t === "pendientes") renderPendientes();
+  if (t === "cerradas")   renderCerradas();
+  if (t === "reporte")    renderReporte();
+  if (t === "config")     renderConfig();
+};
+
+function refreshCurrentTab() {
+  const active = document.querySelector(".section.active");
+  if (!active) return;
+  const id = active.id.replace("tab-", "");
+  if (id === "pendientes") renderPendientes();
+  if (id === "cerradas")   renderCerradas();
+  if (id === "reporte")    renderReporte();
+}
+
+function updateBadge() {
+  const b = document.getElementById("badge-pend");
+  if (b) b.textContent = ordenes.filter(o => o.estado === "pendiente").length;
+}
+
+// ── SELECT SERVICIOS ──────────────────────
+window.syncPrecio = () => {
+  const sel = document.getElementById("n-srv");
+  const idx = sel?.selectedIndex;
+  if (servicios[idx]) document.getElementById("n-precio").value = servicios[idx].precio;
+};
+
+function poblarSelect() {
+  const sel = document.getElementById("n-srv");
+  if (!sel) return;
+  const prev = sel.value;
+  sel.innerHTML = "";
+  servicios.forEach(s => {
+    const o = document.createElement("option");
+    o.value = s.id;
+    o.textContent = s.nombre;
+    sel.appendChild(o);
+  });
+  if (prev) sel.value = prev;
+  syncPrecio();
+}
+
+// ── CREAR ORDEN ───────────────────────────
+window.crearOrden = async () => {
+  const placa = document.getElementById("n-placa").value.trim();
+  if (!placa) { alert("Ingresa la placa o ID del vehículo"); return; }
+  const srvSel = document.getElementById("n-srv");
+  const srvObj = servicios[srvSel.selectedIndex] || {};
+  const precio = parseInt(document.getElementById("n-precio").value) || 0;
+  const id     = Date.now().toString();
+  const orden  = {
+    id,
+    num:          nextNum(),
+    fecha:        hoy(),
+    horaApertura: hora(),
+    creadoPor:    currentUser,
+    placa,
+    tipo:         document.getElementById("n-tipo").value,
+    servicio:     srvObj.nombre || "",
+    precio,
+    notas:        document.getElementById("n-notas").value,
+    estado:       "pendiente",
+    metodoPago:   null,
+    horaCierre:   null,
+    fechaCierre:  null,
+    cerradoPor:   null,
+  };
+  await guardarOrden(orden);
+  document.getElementById("n-placa").value = "";
+  document.getElementById("n-notas").value = "";
+  alert(`Orden #${orden.num} creada para ${placa} — pendiente de pago.`);
+};
+
+// ── COBRAR ────────────────────────────────
+window.abrirModal = id => {
+  const o = ordenes.find(x => x.id === id);
+  if (!o) return;
+  pagoOrdenId = id;
+  document.getElementById("modal-info").innerHTML =
+    `<strong>Orden #${o.num}</strong> &nbsp;·&nbsp; ${o.placa}<br>${o.tipo} &nbsp;·&nbsp; ${o.servicio}<br>Entrada: ${o.horaApertura}`;
+  document.getElementById("m-precio").value = o.precio;
+  document.getElementById("modal-pago").classList.add("open");
+};
+
+window.cerrarModal = () => {
+  document.getElementById("modal-pago").classList.remove("open");
+  pagoOrdenId = null;
+};
+
+window.cobrar = async () => {
+  const o = ordenes.find(x => x.id === pagoOrdenId);
+  if (!o) return;
+  const updated = {
+    ...o,
+    estado:      "cerrada",
+    metodoPago:  document.getElementById("m-pago").value,
+    precio:      parseInt(document.getElementById("m-precio").value) || o.precio,
+    horaCierre:  hora(),
+    fechaCierre: hoy(),
+    cerradoPor:  currentUser,
+  };
+  await guardarOrden(updated);
+  cerrarModal();
+};
+
+window.cancelarOrden = async id => {
+  if (!confirm("¿Cancelar esta orden?")) return;
+  await eliminarOrden(id);
+};
+
+// ── RENDER PENDIENTES ─────────────────────
+window.renderPendientes = () => {
+  const lista = ordenes.filter(o => o.estado === "pendiente")
+                       .sort((a, b) => b.id - a.id);
+  const c = document.getElementById("tabla-pend");
+  if (!c) return;
+  if (!lista.length) {
+    c.innerHTML = `<div class="empty"><div class="icon">&#10003;</div>No hay órdenes pendientes</div>`;
+    return;
+  }
+  const isAdmin = currentUser === "admin";
+  let h = `<table><thead><tr>
+    <th>#</th><th>Hora</th><th>Placa</th><th>Vehículo</th>
+    <th>Servicio</th><th>Precio</th><th>Por</th><th>Acciones</th>
+  </tr></thead><tbody>`;
+  lista.forEach(o => {
+    h += `<tr>
+      <td><span style="font-family:'DM Mono',monospace;font-size:12px;color:var(--muted)">#${o.num}</span></td>
+      <td>${o.horaApertura}</td>
+      <td><strong>${o.placa}</strong></td>
+      <td style="color:var(--muted);font-size:12px;">${o.tipo}</td>
+      <td>${o.servicio}</td>
+      <td style="font-family:'DM Mono',monospace;">${fmt(o.precio)}</td>
+      <td><span class="badge ${o.creadoPor==="admin"?"badge-admin":"badge-op"}">${o.creadoPor}</span></td>
+      <td><div class="td-actions">
+        <button class="btn btn-green" onclick="abrirModal('${o.id}')">Cobrar</button>
+        ${isAdmin ? `<button class="btn btn-red" onclick="cancelarOrden('${o.id}')">Cancelar</button>` : ""}
+      </div></td>
+    </tr>`;
+  });
+  h += `</tbody></table>`;
+  c.innerHTML = h;
+  updateBadge();
+};
+
+// ── RENDER CERRADAS ───────────────────────
+window.renderCerradas = () => {
+  document.getElementById("fecha-cerradas").textContent = fmtF(histFecha);
+  const lista = ordenes.filter(o => o.estado === "cerrada" && o.fechaCierre === histFecha)
+                       .sort((a, b) => b.id - a.id);
+  const c = document.getElementById("tabla-cerradas");
+  if (!c) return;
+  if (!lista.length) {
+    c.innerHTML = `<div class="empty"><div class="icon">&#128467;</div>Sin órdenes cerradas para esta fecha</div>`;
+    return;
+  }
+  let h = `<table><thead><tr>
+    <th>#</th><th>Cierre</th><th>Placa</th><th>Servicio</th>
+    <th>Total</th><th>Pago</th><th>Cerró</th>
+  </tr></thead><tbody>`;
+  lista.forEach(o => {
+    h += `<tr>
+      <td><span style="font-family:'DM Mono',monospace;font-size:12px;color:var(--muted)">#${o.num}</span></td>
+      <td>${o.horaCierre || ""}</td>
+      <td><strong>${o.placa}</strong></td>
+      <td>${o.servicio}</td>
+      <td style="font-family:'DM Mono',monospace;">${fmt(o.precio)}</td>
+      <td>${o.metodoPago}</td>
+      <td><span class="badge ${o.cerradoPor==="admin"?"badge-admin":"badge-op"}">${o.cerradoPor || ""}</span></td>
+    </tr>`;
+  });
+  const total = lista.reduce((a, o) => a + o.precio, 0);
+  h += `<tr class="total-row"><td colspan="4" style="text-align:right;padding-right:12px;">Total del día</td>
+    <td style="font-family:'DM Mono',monospace;">${fmt(total)}</td><td colspan="2"></td></tr>`;
+  h += `</tbody></table>`;
+  c.innerHTML = h;
+};
+
+window.cambiarDia = d => {
+  const dt = new Date(histFecha + "T12:00:00");
+  dt.setDate(dt.getDate() + d);
+  histFecha = dt.toISOString().slice(0, 10);
+  renderCerradas();
+};
+
+// ── RENDER REPORTE ────────────────────────
+window.renderReporte = () => {
+  document.getElementById("fecha-reporte").textContent = fmtF(repFecha);
+  const lista = ordenes.filter(o => o.estado === "cerrada" && o.fechaCierre === repFecha);
+  const total    = lista.reduce((a, o) => a + o.precio, 0);
+  const efectivo = lista.filter(o => o.metodoPago === "Efectivo").reduce((a, o) => a + o.precio, 0);
+  const digital  = total - efectivo;
+  document.getElementById("metricas-rep").innerHTML = `
+    <div class="metric"><div class="metric-label">Motos atendidas</div><div class="metric-val">${lista.length}</div></div>
+    <div class="metric"><div class="metric-label">Total del día</div><div class="metric-val green">${fmt(total)}</div></div>
+    <div class="metric"><div class="metric-label">Efectivo</div><div class="metric-val">${fmt(efectivo)}</div></div>
+    <div class="metric"><div class="metric-label">Digital</div><div class="metric-val">${fmt(digital)}</div></div>
+  `;
+  const c = document.getElementById("tabla-rep");
+  if (!lista.length) {
+    c.innerHTML = `<div class="empty"><div class="icon">&#128202;</div>Sin ventas para esta fecha</div>`;
+    return;
+  }
+  let h = `<table><thead><tr>
+    <th>#</th><th>Placa</th><th>Servicio</th><th>Total</th><th>Pago</th><th>Cierre</th><th>Atendió</th>
+  </tr></thead><tbody>`;
+  lista.sort((a,b) => b.id - a.id).forEach(o => {
+    h += `<tr>
+      <td><span style="font-family:'DM Mono',monospace;font-size:12px;color:var(--muted)">#${o.num}</span></td>
+      <td><strong>${o.placa}</strong></td>
+      <td>${o.servicio}</td>
+      <td style="font-family:'DM Mono',monospace;">${fmt(o.precio)}</td>
+      <td>${o.metodoPago}</td>
+      <td>${o.horaCierre || ""}</td>
+      <td><span class="badge ${o.cerradoPor==="admin"?"badge-admin":"badge-op"}">${o.cerradoPor || ""}</span></td>
+    </tr>`;
+  });
+  h += `<tr class="total-row"><td colspan="3" style="text-align:right;padding-right:12px;">Total</td>
+    <td style="font-family:'DM Mono',monospace;">${fmt(total)}</td><td colspan="3"></td></tr>`;
+  h += `</tbody></table>`;
+  c.innerHTML = h;
+};
+
+window.cambiarDiaRep = d => {
+  const dt = new Date(repFecha + "T12:00:00");
+  dt.setDate(dt.getDate() + d);
+  repFecha = dt.toISOString().slice(0, 10);
+  renderReporte();
+};
+
+// ── CONFIG ────────────────────────────────
+window.renderConfig = () => {
+  const c = document.getElementById("lista-srvs");
+  let h = "";
+  servicios.forEach((s, i) => {
+    h += `<div class="config-row">
+      <div class="config-name">${s.nombre}</div>
+      <div class="config-price field">
+        <input type="number" value="${s.precio}"
+          onchange="servicios[${i}].precio=+this.value; guardarServicios();">
+      </div>
+      <button class="btn btn-red" onclick="delSrv('${s.id}')">Eliminar</button>
+    </div>`;
+  });
+  c.innerHTML = h || `<p style="color:var(--muted);font-size:14px;">Sin servicios registrados.</p>`;
+  document.getElementById("pw-admin").value = "";
+  document.getElementById("pw-op").value    = "";
+};
+
+window.addSrv = async () => {
+  const n = document.getElementById("c-nombre").value.trim();
+  const p = parseInt(document.getElementById("c-precio").value) || 0;
+  if (!n || !p) { alert("Completa nombre y precio"); return; }
+  servicios.push({ id: "s" + Date.now(), nombre: n, precio: p });
+  await guardarServicios();
+  document.getElementById("c-nombre").value = "";
+  document.getElementById("c-precio").value = "";
+  renderConfig();
+};
+
+window.delSrv = async id => {
+  if (!confirm("¿Eliminar este servicio?")) return;
+  servicios = servicios.filter(s => s.id !== id);
+  await guardarServicios();
+  poblarSelect();
+  renderConfig();
+};
+
+window.guardarClaves = async () => {
+  const pa = document.getElementById("pw-admin").value.trim();
+  const po = document.getElementById("pw-op").value.trim();
+  if (!pa && !po) { alert("Escribe al menos una contraseña"); return; }
+  if (pa) authCfg.admin    = pa;
+  if (po) authCfg.operario = po;
+  await guardarAuth();
+  alert("Contraseñas actualizadas correctamente.");
+};
+
+// Exponemos guardarServicios para usarlo desde renderConfig
+window.guardarServicios = guardarServicios;
+
+// Enter en login
+document.getElementById("l-pass").addEventListener("keydown", e => {
+  if (e.key === "Enter") window.doLogin();
+});
+</script>
+</body>
+</html>
