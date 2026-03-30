@@ -9,11 +9,11 @@
 // ============================================================
 
 const firebaseConfig = {
-  apiKey:            "PEGA_AQUI_TU_apiKey",
-  authDomain:        "PEGA_AQUI_TU_authDomain",
-  databaseURL:       "PEGA_AQUI_TU_databaseURL",
-  projectId:         "PEGA_AQUI_TU_projectId",
-  storageBucket:     "PEGA_AQUI_TU_storageBucket",
-  messagingSenderId: "PEGA_AQUI_TU_messagingSenderId",
-  appId:             "PEGA_AQUI_TU_appId"
+  apiKey: "AIzaSyAp5NCH-vV4RIUFuD3FQ0CRit-44_1gBHo",
+  authDomain: "motowash-rp.firebaseapp.com",
+  databaseURL: "https://motowash-rp-default-rtdb.firebaseio.com",
+  projectId: "motowash-rp",
+  storageBucket: "motowash-rp.firebasestorage.app",
+  messagingSenderId: "1076586851362",
+  appId: "1:1076586851362:web:0205804af70f85c838ae7b"
 };
