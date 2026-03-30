@@ -465,13 +465,10 @@
   </div>
 </div>
 
-<!-- ══════════════════════════════════════════
-     FIREBASE SDK
-══════════════════════════════════════════ -->
-<script type="module">
-import { initializeApp }           from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getDatabase, ref, set, get, onValue, update, remove }
-                                   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+<!-- FIREBASE SDK compat -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script>
 const firebaseConfig = {
   apiKey:            "AIzaSyAp5NCH-vV4RIUFuD3FQ0CRit-44_1gBHo",
   authDomain:        "motowash-rp.firebaseapp.com",
@@ -482,9 +479,8 @@ const firebaseConfig = {
   appId:             "1:1076586851362:web:0205804af70f85c838ae7b"
 };
 
-// ── INIT ──────────────────────────────────
-const app = initializeApp(firebaseConfig);
-const db  = getDatabase(app);
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
 
 // ── STATE ─────────────────────────────────
 let ordenes   = [];
@@ -515,8 +511,7 @@ function setSyncStatus(ok) {
 
 // ── FIREBASE: CARGAR DATOS EN TIEMPO REAL ─
 function startListening() {
-  const root = ref(db, "/");
-  unsubscribe = onValue(root, snap => {
+  db.ref("/").on("value", snap => {
     const data = snap.val() || {};
     ordenes   = Object.values(data.ordenes   || {});
     servicios = Object.values(data.servicios || {});
@@ -539,18 +534,18 @@ function startListening() {
 }
 
 async function guardarOrden(o) {
-  await set(ref(db, `/ordenes/${o.id}`), o);
+  await db.ref(`/ordenes/${o.id}`).set(o);
 }
 async function eliminarOrden(id) {
-  await remove(ref(db, `/ordenes/${id}`));
+  await db.ref(`/ordenes/${id}`).remove();
 }
 async function guardarServicios() {
   const obj = {};
   servicios.forEach(s => { obj[s.id] = s; });
-  await set(ref(db, "/servicios"), obj);
+  await db.ref("/servicios").set(obj);
 }
 async function guardarAuth() {
-  await set(ref(db, "/auth"), authCfg);
+  await db.ref("/auth").set(authCfg);
 }
 
 // ── LOGIN / LOGOUT ────────────────────────
@@ -561,7 +556,7 @@ window.doLogin = async () => {
 
   // Cargar auth desde Firebase antes de validar
   try {
-    const snap = await get(ref(db, "/auth"));
+    const snap = await db.ref("/auth").once("value");
     if (snap.exists()) authCfg = snap.val();
   } catch(e) {}
 
@@ -580,7 +575,7 @@ window.doLogin = async () => {
 };
 
 window.doLogout = () => {
-  if (unsubscribe) unsubscribe();
+  db.ref("/").off();
   currentUser = null;
   document.getElementById("main-app").style.display    = "none";
   document.getElementById("login-screen").style.display = "flex";
@@ -900,12 +895,10 @@ window.guardarClaves = async () => {
   alert("Contraseñas actualizadas correctamente.");
 };
 
-// Exponemos guardarServicios para usarlo desde renderConfig
 window.guardarServicios = guardarServicios;
 
-// Enter en login
 document.getElementById("l-pass").addEventListener("keydown", e => {
-  if (e.key === "Enter") window.doLogin();
+  if (e.key === "Enter") doLogin();
 });
 </script>
 </body>
