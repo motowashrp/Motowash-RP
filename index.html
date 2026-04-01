@@ -154,6 +154,20 @@ tbody tr:hover{background:var(--bbg)}
   .tabs{padding:3px;gap:1px}
   .tab{font-size:10px;padding:7px 2px;min-width:48px}
 }
+.nom-card{background:#fff;border:1px solid var(--bd);border-radius:var(--rl);padding:16px;margin-bottom:12px;box-shadow:var(--sh)}
+.nom-header{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.nom-avatar{width:44px;height:44px;border-radius:50%;background:var(--bm);color:#fff;font-size:18px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.nom-name{font-size:15px;font-weight:700;margin-bottom:4px}
+.nom-tags{display:flex;flex-wrap:wrap;gap:4px}
+.nom-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px}
+.nom-stat{background:var(--s2);border:1px solid var(--bd);border-radius:var(--r);padding:10px 12px;text-align:center}
+.nom-stat.highlight{background:linear-gradient(135deg,#fffbeb,#fef3c7);border-color:#fde68a}
+.nom-sv{font-size:18px;font-weight:700;font-family:"JetBrains Mono",monospace;margin-bottom:2px}
+.nom-sv.green{color:var(--gn)}
+.nom-sl{font-size:10px;color:var(--mu);text-transform:uppercase;letter-spacing:.05em}
+.nom-total{background:linear-gradient(135deg,var(--bbg),#e0f2fe);border:1px solid var(--bbd);border-radius:var(--rl);padding:16px;margin-top:4px}
+.nom-pct-box{background:linear-gradient(135deg,#fef9c3,#fef08a);border:2px solid #fbbf24;border-radius:var(--rl);padding:16px;margin-bottom:16px}
+@media(max-width:600px){.nom-stats{grid-template-columns:1fr 1fr}}
 .bwa{background:#25D366;color:#fff;border-color:#25D366;font-size:12px;padding:5px 10px;font-weight:600;display:inline-flex;align-items:center;gap:4px}
 .bwa:hover{background:#128C7E;border-color:#128C7E}
 .bwa svg{flex-shrink:0}
@@ -255,6 +269,53 @@ tbody tr:hover{background:var(--bbg)}
         <div class="cbox"><h4>Ingresos ultimos 7 dias</h4><div class="cwrap"><canvas id="chDia"></canvas></div></div>
       </div>
       <div class="card"><div class="ct" style="margin-bottom:12px">Detalle del dia</div><div class="tw" id="trep"></div></div>
+    </div>
+
+
+    <!-- NOMINA -->
+    <div id="tab-nomina" class="sec">
+      <!-- Config porcentaje -->
+      <div class="nom-pct-box">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+          <div>
+            <div style="font-size:13px;font-weight:700;color:#92400e">&#128119; Configuracion de pago a lavadores</div>
+            <div style="font-size:12px;color:#b45309;margin-top:2px">Porcentaje actual: <strong id="nomPctLabel">30%</strong> sobre cada servicio cobrado</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <div class="fi" style="margin:0;width:90px">
+              <input id="nomPct" type="number" min="1" max="100" value="30" style="text-align:center;font-weight:700;font-size:16px">
+            </div>
+            <span style="font-size:16px;font-weight:700;color:#92400e">%</span>
+            <button class="btn bp" onclick="saveNomina()">Guardar %</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Filtros periodo -->
+      <div class="card" style="margin-bottom:14px">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <div class="fi" style="margin:0">
+            <label>Periodo</label>
+            <select id="nomPeriodo" onchange="toggleNomPeriodo();rNomina()">
+              <option value="mes">Por mes</option>
+              <option value="dia">Por dia</option>
+              <option value="todo">Todo el historial</option>
+            </select>
+          </div>
+          <div class="fi" id="nomMesWrap" style="margin:0">
+            <label>Mes</label>
+            <input id="nomMes" type="month" onchange="rNomina()">
+          </div>
+          <div class="fi" id="nomDiaWrap" style="margin:0;display:none">
+            <label>Fecha</label>
+            <input id="nomDia" type="date" onchange="rNomina()">
+          </div>
+          <button class="btn bx" style="margin-top:18px" onclick="exportNomina()">&#128196; Excel nomina</button>
+        </div>
+      </div>
+
+      <!-- Tarjetas por lavador -->
+      <div id="tnomina"></div>
     </div>
 
     <!-- CLIENTES -->
@@ -491,6 +552,11 @@ function listen(){
     auth=d.auth||{admin:"admin123",operario:"moto123"};
     empresa=d.empresa||{nombre:"MotoWash R&P",nit:"",telefono:"",direccion:"",ciudad:"",slogan:""};
     promoCfg=d.promo||{n:5,activa:true};
+    nominaCfg=d.nomina||{porcentaje:30,activa:true};
+    var np=document.getElementById("nomPct");
+    if(np)np.value=nominaCfg.porcentaje||30;
+    var nl=document.getElementById("nomPctLabel");
+    if(nl)nl.textContent=(nominaCfg.porcentaje||30)+"%";
     if(!srvs.length){
       srvs=[
         {id:"s1",nombre:"Lavado basico",precio:8000},
@@ -555,6 +621,7 @@ function setupTabs(){
     {id:"mensual",l:"Mensual",a:true},
     {id:"ranking",l:"Ranking",a:true},
     {id:"promos",l:"Promos",a:true},
+    {id:"nomina",l:"Nomina",a:true},
     {id:"clientes",l:"Clientes"},
     {id:"busqueda",l:"Buscar"},
     {id:"config",l:"Config",a:true}
@@ -573,6 +640,11 @@ function setupTabs(){
   });
   var bx=document.getElementById("btnExcel");
   if(bx)bx.style.display=isA?"":"none";
+  // Inicializar inputs de nomina
+  var nm=document.getElementById("nomMes");
+  if(nm)nm.value=mesActual();
+  var nd=document.getElementById("nomDia");
+  if(nd)nd.value=hoy();
   showTab("nueva");
 }
 
@@ -589,6 +661,7 @@ function showTab(t){
   if(t==="mensual"){rRepMes();}
   if(t==="promos")rPromos();
   if(t==="ranking")rRanking();
+  if(t==="nomina")rNomina();
   if(t==="config")rConf();
   if(t==="clientes")rClientes();
 }
@@ -603,6 +676,7 @@ function refresh(){
   if(id==="mensual")rRepMes();
   if(id==="promos")rPromos();
   if(id==="ranking")rRanking();
+  if(id==="nomina")rNomina();
   if(id==="clientes")rClientes();
 }
 
@@ -1371,6 +1445,178 @@ function exportExcelMes(mes,l){
   XLSX.writeFile(wb,"MotoWash-"+mes+".xlsx");
 }
 
+
+
+// ============================================================
+// NOMINA DE LAVADORES
+// ============================================================
+var nominaCfg={porcentaje:30,activa:true}; // % por defecto
+
+function gNomina(){return db.ref("/nomina").set(nominaCfg);}
+
+// Cargar config nomina desde Firebase en listen()
+// Se agrega en el bloque de listen
+
+function rNomina(){
+  var c=document.getElementById("tnomina");if(!c)return;
+
+  // Periodo
+  var periodoEl=document.getElementById("nomPeriodo");
+  var periodo=periodoEl?periodoEl.value:"mes";
+  var mesEl=document.getElementById("nomMes");
+  var mesVal=mesEl?mesEl.value:mesActual();
+
+  // Filtrar ordenes según periodo
+  var lBase=ords.filter(function(o){return o.estado==="cerrada"&&o.operarioLavado;});
+  var lFilt;
+  if(periodo==="mes"){
+    lFilt=lBase.filter(function(o){return o.fechaC&&o.fechaC.startsWith(mesVal);});
+  }else if(periodo==="dia"){
+    var diaEl=document.getElementById("nomDia");
+    var diaVal=diaEl?diaEl.value:hoy();
+    lFilt=lBase.filter(function(o){return o.fechaC===diaVal;});
+  }else{
+    lFilt=lBase; // todo el historial
+  }
+
+  // Agrupar por operario
+  var stats={};
+  lFilt.forEach(function(o){
+    var op=o.operarioLavado;
+    if(!stats[op])stats[op]={motos:0,ingresos:0,gratis:0,servicios:{}};
+    stats[op].motos++;
+    var esG=o.metodoPago==="GRATIS - Premio promocion";
+    if(esG){
+      stats[op].gratis++;
+    }else{
+      stats[op].ingresos+=o.precio;
+    }
+    stats[op].servicios[o.servicio]=(stats[op].servicios[o.servicio]||0)+1;
+  });
+
+  var ops=Object.keys(stats).sort();
+  if(!ops.length){
+    c.innerHTML='<div class="emp"><div class="ei">&#128119;</div>Sin lavados registrados en este periodo.<br><small style="font-size:11px">Recuerda registrar el operario al cobrar cada orden.</small></div>';
+    return;
+  }
+
+  var pct=nominaCfg.porcentaje||30;
+  var totalPagar=0;
+  var totalMotos=0;
+  var totalIngresos=0;
+
+  var h='';
+  ops.forEach(function(op){
+    var s=stats[op];
+    var pago=Math.round(s.ingresos*pct/100);
+    totalPagar+=pago;
+    totalMotos+=s.motos;
+    totalIngresos+=s.ingresos;
+
+    // Detalle servicios
+    var srvDetail=Object.keys(s.servicios).map(function(srv){
+      return '<span style="font-size:10px;background:var(--bbg);color:var(--bl);border-radius:99px;padding:2px 8px;white-space:nowrap">'+srv+': '+s.servicios[srv]+'</span>';
+    }).join(' ');
+
+    h+='<div class="nom-card">';
+    h+='<div class="nom-header">';
+    h+='<div class="nom-avatar">'+op.charAt(0).toUpperCase()+'</div>';
+    h+='<div class="nom-info"><div class="nom-name">'+op+'</div>';
+    h+='<div class="nom-tags">'+srvDetail+'</div></div>';
+    h+='</div>';
+    h+='<div class="nom-stats">';
+    h+='<div class="nom-stat"><div class="nom-sv">'+s.motos+'</div><div class="nom-sl">Motos</div></div>';
+    h+='<div class="nom-stat"><div class="nom-sv">'+fmt(s.ingresos)+'</div><div class="nom-sl">Generado</div></div>';
+    h+='<div class="nom-stat highlight"><div class="nom-sv green">'+fmt(pago)+'</div><div class="nom-sl">A pagar ('+pct+'%)</div></div>';
+    if(s.gratis>0){
+      h+='<div class="nom-stat"><div class="nom-sv" style="color:var(--or)">'+s.gratis+'</div><div class="nom-sl">Gratis</div></div>';
+    }
+    h+='</div>';
+    h+='</div>';
+  });
+
+  // Totales
+  h+='<div class="nom-total">';
+  h+='<div style="font-size:13px;font-weight:600;color:var(--mu);margin-bottom:8px">RESUMEN DEL PERIODO</div>';
+  h+='<div style="display:flex;gap:20px;flex-wrap:wrap">';
+  h+='<div><div style="font-size:11px;color:var(--mu)">Total motos</div><div style="font-size:22px;font-weight:700;color:var(--bm)">'+totalMotos+'</div></div>';
+  h+='<div><div style="font-size:11px;color:var(--mu)">Total ingresos</div><div style="font-size:22px;font-weight:700;color:var(--gn)">'+fmt(totalIngresos)+'</div></div>';
+  h+='<div><div style="font-size:11px;color:var(--mu)">Total a pagar ('+pct+'%)</div><div style="font-size:22px;font-weight:700;color:#d97706">'+fmt(totalPagar)+'</div></div>';
+  h+='<div><div style="font-size:11px;color:var(--mu)">Lavadores activos</div><div style="font-size:22px;font-weight:700">'+ops.length+'</div></div>';
+  h+='</div>';
+  h+='</div>';
+
+  c.innerHTML=h;
+}
+
+function saveNomina(){
+  var pct=parseInt(document.getElementById("nomPct").value)||30;
+  if(pct<1||pct>100){alert("El porcentaje debe estar entre 1 y 100");return;}
+  nominaCfg.porcentaje=pct;
+  gNomina().then(function(){
+    document.getElementById("nomPctLabel").textContent=pct+"%";
+    rNomina();
+    alert("Porcentaje actualizado: "+pct+"%");
+  });
+}
+
+function exportNomina(){
+  var periodoEl=document.getElementById("nomPeriodo");
+  var periodo=periodoEl?periodoEl.value:"mes";
+  var mesEl=document.getElementById("nomMes");
+  var mesVal=mesEl?mesEl.value:mesActual();
+
+  var lBase=ords.filter(function(o){return o.estado==="cerrada"&&o.operarioLavado;});
+  var lFilt;
+  if(periodo==="mes"){
+    lFilt=lBase.filter(function(o){return o.fechaC&&o.fechaC.startsWith(mesVal);});
+  }else if(periodo==="dia"){
+    var diaEl=document.getElementById("nomDia");
+    var diaVal=diaEl?diaEl.value:hoy();
+    lFilt=lBase.filter(function(o){return o.fechaC===diaVal;});
+  }else{
+    lFilt=lBase;
+  }
+
+  var pct=nominaCfg.porcentaje||30;
+  var wb=XLSX.utils.book_new();
+
+  // Hoja resumen
+  var stats={};
+  lFilt.forEach(function(o){
+    var op=o.operarioLavado;
+    if(!stats[op])stats[op]={motos:0,ingresos:0,gratis:0};
+    stats[op].motos++;
+    if(o.metodoPago!=="GRATIS - Premio promocion")stats[op].ingresos+=o.precio;
+    else stats[op].gratis++;
+  });
+  var f1=[["Operario","Motos lavadas","Ingresos generados","% Pago","Total a pagar","Lavadas gratis"]];
+  Object.keys(stats).sort().forEach(function(op){
+    var s=stats[op];
+    f1.push([op,s.motos,s.ingresos,pct+"%",Math.round(s.ingresos*pct/100),s.gratis]);
+  });
+  var w1=XLSX.utils.aoa_to_sheet(f1);XLSX.utils.book_append_sheet(wb,w1,"Nomina");
+
+  // Hoja detalle
+  var f2=[["Fecha","Placa","Cliente","Servicio","Precio","Pago operario","Operario"]];
+  lFilt.sort(function(a,b){return a.id-b.id;}).forEach(function(o){
+    var esG=o.metodoPago==="GRATIS - Premio promocion";
+    f2.push([o.fechaC,o.placa,o.cliente||"",o.servicio,esG?0:o.precio,esG?0:Math.round(o.precio*pct/100),o.operarioLavado]);
+  });
+  var w2=XLSX.utils.aoa_to_sheet(f2);XLSX.utils.book_append_sheet(wb,w2,"Detalle");
+
+  XLSX.writeFile(wb,"Nomina-MotoWash-"+mesVal+".xlsx");
+}
+
+
+
+function toggleNomPeriodo(){
+  var v=document.getElementById("nomPeriodo").value;
+  var mw=document.getElementById("nomMesWrap");
+  var dw=document.getElementById("nomDiaWrap");
+  if(mw)mw.style.display=v==="mes"?"":"none";
+  if(dw)dw.style.display=v==="dia"?"":"none";
+}
 
 document.getElementById("promoN").addEventListener("input",function(){
   document.getElementById("promoNLabel").textContent=this.value;
