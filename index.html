@@ -152,6 +152,14 @@ tbody tr:hover{background:var(--bbg)}
   .tabs{padding:3px;gap:1px}
   .tab{font-size:10px;padding:7px 2px;min-width:48px}
 }
+.bwa{background:#dcfce7;color:#166534;border-color:#86efac;font-size:12px;padding:5px 10px;font-weight:600}
+.bwa:hover{background:#bbf7d0}
+.comp-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}
+.rank-medal{font-size:18px}
+.op-card{background:#fff;border:1px solid var(--bd);border-radius:var(--rl);padding:14px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;box-shadow:var(--sh)}
+.op-num{font-size:28px;font-weight:700;font-family:"JetBrains Mono",monospace;color:var(--bm)}
+.op-lbl{font-size:10px;color:var(--mu);text-transform:uppercase}
+@media(max-width:600px){.comp-grid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -269,6 +277,53 @@ tbody tr:hover{background:var(--bbg)}
       </div>
     </div>
 
+
+    <!-- MENSUAL -->
+    <div id="tab-mensual" class="sec">
+      <div class="dn">
+        <button class="btn bs" onclick="chMes(-1)">&larr; Anterior</button>
+        <span class="dl" id="fmes"></span>
+        <button class="btn bs" onclick="chMes(1)">Siguiente &rarr;</button>
+        <button class="btn bs bp" onclick="rMes=mesActual();rRepMes()">Este mes</button>
+        <button class="btn bx" id="btnExcelMes">&#128196; Excel mes</button>
+      </div>
+      <div class="mets" id="mrep-mes"></div>
+      <div class="comp-grid">
+        <div class="cbox"><h4>Ventas por servicio</h4><div class="cwrap"><canvas id="chMesSrv"></canvas></div></div>
+        <div class="cbox"><h4>Comparativo 6 meses</h4><div class="cwrap"><canvas id="chMesDia"></canvas></div></div>
+      </div>
+      <div class="card">
+        <div class="ct" style="margin-bottom:12px">Rendimiento por operario</div>
+        <div class="tw" id="top-operarios"></div>
+      </div>
+      <div class="card">
+        <div class="ct" style="margin-bottom:12px">Detalle por dia</div>
+        <div class="tw" id="tmes-dias"></div>
+      </div>
+    </div>
+
+    <!-- RANKING -->
+    <div id="tab-ranking" class="sec">
+      <div class="card">
+        <div class="ch">
+          <div class="ct">Ranking de clientes frecuentes</div>
+          <span style="font-size:12px;color:var(--mu)">Top 20 por visitas totales</span>
+        </div>
+        <div class="tw" id="tranking"></div>
+      </div>
+    </div>
+
+    <!-- PROMOS -->
+    <div id="tab-promos" class="sec">
+      <div class="card">
+        <div class="ch">
+          <div class="ct">Historial de premios canjeados</div>
+          <span id="totalPromos" style="font-size:12px;color:var(--mu)"></span>
+        </div>
+        <div class="tw" id="tpromos"></div>
+      </div>
+    </div>
+
     <!-- CONFIG -->
     <div id="tab-config" class="sec">
       <div class="card">
@@ -330,6 +385,9 @@ tbody tr:hover{background:var(--bbg)}
         <option>Tarjeta</option>
         <option>GRATIS - Premio promocion</option>
       </select>
+    </div>
+    <div class="fi" style="margin-bottom:10px"><label>Operario que lavo la moto</label>
+      <input id="mopLav" type="text" placeholder="Nombre del operario..." autocomplete="off">
     </div>
     <div class="fi"><label>Precio final (COP $)</label><input id="mpr" type="number" min="0" step="500"></div>
     <div class="ma2">
@@ -491,6 +549,9 @@ function setupTabs(){
     {id:"pendientes",l:"Pendientes",b:true},
     {id:"cerradas",l:"Cerradas"},
     {id:"reporte",l:"Reporte"},
+    {id:"mensual",l:"Mensual"},
+    {id:"ranking",l:"Ranking"},
+    {id:"promos",l:"Promos"},
     {id:"clientes",l:"Clientes"},
     {id:"busqueda",l:"Buscar"},
     {id:"config",l:"Config",a:true}
@@ -522,6 +583,9 @@ function showTab(t){
   if(t==="pendientes")rPend();
   if(t==="cerradas")rCer();
   if(t==="reporte")rRep();
+  if(t==="mensual"){rRepMes();}
+  if(t==="promos")rPromos();
+  if(t==="ranking")rRanking();
   if(t==="config")rConf();
   if(t==="clientes")rClientes();
 }
@@ -533,6 +597,9 @@ function refresh(){
   if(id==="pendientes")rPend();
   if(id==="cerradas")rCer();
   if(id==="reporte")rRep();
+  if(id==="mensual")rRepMes();
+  if(id==="promos")rPromos();
+  if(id==="ranking")rRanking();
   if(id==="clientes")rClientes();
 }
 
@@ -689,11 +756,13 @@ function cobrar(){
   var o=ords.find(function(x){return x.id===pId;});
   if(!o)return;
   var hC=hora();
+  var opLav=document.getElementById("mopLav").value.trim()||cu;
   var u=Object.assign({},o,{
     estado:"cerrada",
     metodoPago:document.getElementById("mpag").value,
     precio:parseInt(document.getElementById("mpr").value)||0,
     horaC:hC,fechaC:hoy(),cerradoPor:cu,
+    operarioLavado:opLav,
     dur:duracion(o.horaA,hC)
   });
   gOrden(u).then(function(){cModal();showTicket(u);});
@@ -726,6 +795,7 @@ function rPend(){
     h+='<td style="font-family:monospace;font-weight:600">'+precio+'</td>';
     h+='<td style="font-size:12px">'+(o.celular||"&mdash;")+'</td>';
     h+='<td><div class="tda">'+rowBtn("bg2","Cobrar","aModal",o.id);
+    if(o.celular)h+=rowBtn("bwa","&#128232;","waCliente",o.id);
     if(isA)h+=rowBtn("br2","&#10005;","cancelOrden",o.id);
     h+='</div></td></tr>';
   });
@@ -749,7 +819,7 @@ function rCer(){
     h+='<td style="font-family:monospace;font-weight:600">'+(esG?'<span class="ba baf">&#127873; GRATIS</span>':fmt(o.precio))+'</td>';
     h+='<td style="font-size:12px">'+(esG?"Premio":o.metodoPago)+'</td>';
     h+='<td><span class="ba bap">'+(o.dur||"&mdash;")+'</span></td>';
-    h+='<td>'+rowBtn("bk","&#129534;","verTicket",o.id)+'</td>';
+    h+='<td><div class="tda">'+rowBtn("bk","&#129534;","verTicket",o.id)+(o.celular?rowBtn("bwa","&#128232;","waCerrada",o.id):"")+'</div></td>';
     h+='</tr>';
   });
   var t=l.reduce(function(a,o){return a+o.precio;},0);
@@ -959,6 +1029,7 @@ function showTicket(o){
   if(o.cliente)h+='<div class="trr"><span>Cliente</span><span>'+o.cliente+'</span></div>';
   h+='<div class="trr"><span>Servicio</span><span>'+o.servicio+'</span></div>';
   if(o.celular)h+='<div class="trr"><span>Celular</span><span>'+o.celular+'</span></div>';
+  if(o.operarioLavado)h+='<div class="trr"><span>Lavado por</span><span>'+o.operarioLavado+'</span></div>';
   if(o.notas)h+='<div class="trr"><span>Notas</span><span>'+o.notas+'</span></div>';
   h+='<hr class="tl">';
   h+='<div class="trr"><span>Pago</span><span>'+(esG?"GRATIS &#127873;":o.metodoPago)+'</span></div>';
@@ -1059,8 +1130,8 @@ function savePw(){
 function exportExcel(){
   var wb=XLSX.utils.book_new();
   var cd=ords.filter(function(o){return o.estado==="cerrada"&&o.fechaC===rFecha;}).sort(function(a,b){return a.id-b.id;});
-  var f1=[["#","Placa","Cliente","Servicio","Precio COP","Metodo pago","Celular","Duracion","Hora entrada","Hora cierre","Registrado por"]];
-  cd.forEach(function(o){f1.push([o.num,o.placa,o.cliente||"",o.servicio,o.precio,o.metodoPago||"",o.celular||"",o.dur||"",o.horaA||"",o.horaC||"",o.cerradoPor||""]);});
+  var f1=[["#","Placa","Cliente","Servicio","Precio COP","Metodo pago","Celular","Operario lavado","Duracion","Hora entrada","Hora cierre","Registrado por"]];
+  cd.forEach(function(o){f1.push([o.num,o.placa,o.cliente||"",o.servicio,o.precio,o.metodoPago||"",o.celular||"",o.operarioLavado||o.cerradoPor||"",o.dur||"",o.horaA||"",o.horaC||"",o.cerradoPor||""]);});
   var w1=XLSX.utils.aoa_to_sheet(f1);XLSX.utils.book_append_sheet(wb,w1,"Dia "+rFecha);
   var ts={},cs={};
   cd.forEach(function(o){ts[o.servicio]=(ts[o.servicio]||0)+o.precio;cs[o.servicio]=(cs[o.servicio]||0)+1;});
@@ -1079,6 +1150,224 @@ function exportExcel(){
   var w4=XLSX.utils.aoa_to_sheet(f4);XLSX.utils.book_append_sheet(wb,w4,"Resumen por fecha");
   XLSX.writeFile(wb,"MotoWash-RP-"+rFecha+".xlsx");
 }
+
+
+function waCliente(id){
+  var o=ords.find(function(x){return x.id===id;});
+  if(!o||!o.celular)return;
+  var cel=o.celular.replace(/\D/g,"");
+  if(cel.length===10)cel="57"+cel;
+  var msg=encodeURIComponent("Hola "+( o.cliente||"cliente")+"! Su moto ("+o.placa+") ya esta lista en "+(empresa.nombre||"MotoWash R&P")+". Lo esperamos!");
+  window.open("https://wa.me/"+cel+"?text="+msg,"_blank");
+}
+
+function waCerrada(id){
+  var o=ords.find(function(x){return x.id===id;});
+  if(!o||!o.celular)return;
+  var cel=o.celular.replace(/\D/g,"");
+  if(cel.length===10)cel="57"+cel;
+  var msg=encodeURIComponent("Hola "+(o.cliente||"cliente")+"! Gracias por visitarnos en "+(empresa.nombre||"MotoWash R&P")+". Su moto ("+o.placa+") quedo impecable. Lo esperamos pronto!");
+  window.open("https://wa.me/"+cel+"?text="+msg,"_blank");
+}
+
+// HISTORIAL PROMOCIONES
+function rPromos(){
+  var c=document.getElementById("tpromos");if(!c)return;
+  var canjeadas=ords.filter(function(o){return o.metodoPago==="GRATIS - Premio promocion";}).sort(function(a,b){return b.id-a.id;});
+  if(!canjeadas.length){c.innerHTML='<div class="emp"><div class="ei">&#127873;</div>Sin promociones canjeadas aun</div>';return;}
+  var h='<table><thead><tr><th>Fecha</th><th>Placa</th><th>Cliente</th><th>Servicio</th><th>Cerro</th></tr></thead><tbody>';
+  canjeadas.forEach(function(o){
+    h+='<tr>';
+    h+='<td>'+fmtF(o.fechaC||o.fecha)+'</td>';
+    h+='<td><strong>'+o.placa+'</strong></td>';
+    h+='<td>'+(o.cliente||"&mdash;")+'</td>';
+    h+='<td>'+o.servicio+'</td>';
+    h+='<td style="font-size:11px;color:var(--mu)">'+(o.cerradoPor||"&mdash;")+'</td>';
+    h+='</tr>';
+  });
+  h+='</tbody></table>';
+  c.innerHTML=h;
+  document.getElementById("totalPromos").textContent=canjeadas.length+" premios canjeados";
+}
+
+// RANKING CLIENTES
+function rRanking(){
+  var c=document.getElementById("tranking");if(!c)return;
+  // Contar visitas por placa
+  var visitas={};
+  var gasto={};
+  var nombres={};
+  ords.filter(function(o){return o.estado==="cerrada";}).forEach(function(o){
+    visitas[o.placa]=(visitas[o.placa]||0)+1;
+    gasto[o.placa]=(gasto[o.placa]||0)+(o.metodoPago==="GRATIS - Premio promocion"?0:o.precio);
+    if(o.cliente&&!nombres[o.placa])nombres[o.placa]=o.cliente;
+  });
+  var lista=Object.keys(visitas).map(function(p){return {placa:p,visitas:visitas[p],gasto:gasto[p],nombre:nombres[p]||""};});
+  lista.sort(function(a,b){return b.visitas-a.visitas;});
+  var top=lista.slice(0,20);
+  if(!top.length){c.innerHTML='<div class="emp"><div class="ei">&#127942;</div>Sin datos aun</div>';return;}
+  var h='<table><thead><tr><th>#</th><th>Placa</th><th>Cliente</th><th>Visitas</th><th>Total gastado</th><th>Lavadas mes</th></tr></thead><tbody>';
+  top.forEach(function(cl,i){
+    var lm=lavadasMes(cl.placa);
+    var medal=i===0?"&#129351;":i===1?"&#129352;":i===2?"&#129353;":"";
+    h+='<tr>';
+    h+='<td style="font-weight:700;color:var(--mu)">'+medal+(i+1)+'</td>';
+    h+='<td><strong>'+cl.placa+'</strong></td>';
+    h+='<td>'+(cl.nombre||"&mdash;")+'</td>';
+    h+='<td style="font-weight:700;color:var(--bm);text-align:center">'+cl.visitas+'</td>';
+    h+='<td style="font-family:monospace;font-weight:600">'+fmt(cl.gasto)+'</td>';
+    h+='<td style="text-align:center">'+lm+'</td>';
+    h+='</tr>';
+  });
+  h+='</tbody></table>';
+  c.innerHTML=h;
+}
+
+// REPORTE MENSUAL
+var rMes=mesActual();
+function chMes(d){
+  var p=rMes.split("-");
+  var y=parseInt(p[0]),m=parseInt(p[1]);
+  m+=d;
+  if(m>12){m=1;y++;}
+  if(m<1){m=12;y--;}
+  rMes=y+"-"+(m<10?"0":"")+m;
+  rRepMes();
+}
+
+function rRepMes(){
+  var mes=rMes;
+  var mp=mes.split("-");
+  var mNames=["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+  document.getElementById("fmes").textContent=mNames[parseInt(mp[1])-1]+" "+mp[0];
+
+  var l=ords.filter(function(o){return o.estado==="cerrada"&&o.fechaC&&o.fechaC.startsWith(mes);});
+  var tot=l.reduce(function(a,o){return a+o.precio;},0);
+  var ef=l.filter(function(o){return o.metodoPago==="Efectivo";}).reduce(function(a,o){return a+o.precio;},0);
+  var gratis=l.filter(function(o){return o.metodoPago==="GRATIS - Premio promocion";}).length;
+  var placasUnicas=[];
+  l.forEach(function(o){if(placasUnicas.indexOf(o.placa)<0)placasUnicas.push(o.placa);});
+
+  // Mes anterior para comparar
+  var mp2=mes.split("-");
+  var ym=parseInt(mp2[0]),mm=parseInt(mp2[1])-1;
+  if(mm<1){mm=12;ym--;}
+  var mesAnt=ym+"-"+(mm<10?"0":"")+mm;
+  var lAnt=ords.filter(function(o){return o.estado==="cerrada"&&o.fechaC&&o.fechaC.startsWith(mesAnt);});
+  var totAnt=lAnt.reduce(function(a,o){return a+o.precio;},0);
+  var diffPct=totAnt>0?Math.round((tot-totAnt)/totAnt*100):0;
+  var diffStr=diffPct>=0?"&#9650; +"+diffPct+"%":"&#9660; "+diffPct+"%";
+  var diffColor=diffPct>=0?"var(--gn)":"var(--rd)";
+
+  var mr=document.getElementById("mrep-mes");
+  if(mr){
+    mr.innerHTML=
+      '<div class="met"><div class="ml">Motos lavadas</div><div class="mv bl">'+l.length+'</div></div>'+
+      '<div class="met g"><div class="ml">Ingresos</div><div class="mv gr">'+fmt(tot)+'</div></div>'+
+      '<div class="met"><div class="ml">Efectivo</div><div class="mv">'+fmt(ef)+'</div></div>'+
+      '<div class="met"><div class="ml">Digital</div><div class="mv">'+fmt(tot-ef)+'</div></div>'+
+      '<div class="met"><div class="ml">Clientes unicos</div><div class="mv">'+placasUnicas.length+'</div></div>'+
+      '<div class="met"><div class="ml">vs mes ant.</div><div class="mv" style="color:'+diffColor+';font-size:16px">'+diffStr+'</div></div>'+
+      (gratis?'<div class="met o"><div class="ml">Promos</div><div class="mv or">'+gratis+'</div></div>':"");
+  }
+
+  // Grafica por servicio del mes
+  var ts={},cs={};
+  l.filter(function(o){return o.metodoPago!=="GRATIS - Premio promocion";}).forEach(function(o){
+    ts[o.servicio]=(ts[o.servicio]||0)+o.precio;
+    cs[o.servicio]=(cs[o.servicio]||0)+1;
+  });
+  var sL=Object.keys(ts),sD=Object.values(ts);
+  var cols=["#2563eb","#16a34a","#d97706","#7c3aed","#dc2626","#0891b2","#be185d"];
+  var chMesS=window._chMesS;
+  if(chMesS){chMesS.destroy();}
+  var c1=document.getElementById("chMesSrv");
+  if(c1&&sL.length){window._chMesS=new Chart(c1.getContext("2d"),{type:"doughnut",data:{labels:sL,datasets:[{data:sD,backgroundColor:cols.slice(0,sL.length),borderWidth:2,borderColor:"#fff"}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:"bottom",labels:{font:{size:11},padding:8}}}}});}
+
+  // Grafica comparativa 6 meses
+  var meses6=[];
+  for(var i=5;i>=0;i--){
+    var d2=new Date(parseInt(mp[0]),parseInt(mp[1])-1-i,1);
+    meses6.push(d2.getFullYear()+"-"+(d2.getMonth()+1<10?"0":"")+(d2.getMonth()+1));
+  }
+  var mL=meses6.map(function(m2){var p2=m2.split("-");return mNames[parseInt(p2[1])-1].slice(0,3);});
+  var mD=meses6.map(function(m2){return ords.filter(function(o){return o.estado==="cerrada"&&o.fechaC&&o.fechaC.startsWith(m2);}).reduce(function(a,o){return a+o.precio;},0);});
+  var chMesD=window._chMesD;
+  if(chMesD){chMesD.destroy();}
+  var c2=document.getElementById("chMesDia");
+  if(c2){window._chMesD=new Chart(c2.getContext("2d"),{type:"bar",data:{labels:mL,datasets:[{data:mD,backgroundColor:meses6.map(function(m2){return m2===mes?"#2563eb":"#bfdbfe";}),borderRadius:6,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{callback:function(v){return "$"+v.toLocaleString("es-CO");}},grid:{color:"rgba(0,0,0,.05)"}},x:{grid:{display:false}}}}});}
+
+  // Tabla por dia del mes
+  var dias={};
+  l.forEach(function(o){dias[o.fechaC]=(dias[o.fechaC]||0)+1;});
+  var diasArr=Object.keys(dias).sort();
+  var tmh='<table><thead><tr><th>Fecha</th><th>Motos</th><th>Promedio/dia</th></tr></thead><tbody>';
+  diasArr.forEach(function(fd){
+    var lotd=l.filter(function(o){return o.fechaC===fd;});
+    var totd=lotd.reduce(function(a,o){return a+o.precio;},0);
+    tmh+='<tr><td>'+fmtF(fd)+'</td><td style="text-align:center;font-weight:700">'+dias[fd]+'</td><td style="font-family:monospace">'+fmt(Math.round(totd/dias[fd]))+'</td></tr>';
+  });
+  tmh+='</tbody></table>';
+  var tm=document.getElementById("tmes-dias");
+  if(tm)tm.innerHTML=tmh||'<div class="emp">Sin datos</div>';
+
+  // Reporte por operario del mes
+  var opStats={};
+  l.forEach(function(o){
+    var op=o.operarioLavado||o.cerradoPor||"desconocido";
+    if(!opStats[op])opStats[op]={motos:0,ingresos:0};
+    opStats[op].motos++;
+    opStats[op].ingresos+=(o.metodoPago==="GRATIS - Premio promocion"?0:o.precio);
+  });
+  var opArr=Object.keys(opStats).sort(function(a,b){return opStats[b].motos-opStats[a].motos;});
+  var oh='<table><thead><tr><th>Operario</th><th>Motos lavadas</th><th>Ingresos generados</th><th>Promedio/moto</th></tr></thead><tbody>';
+  opArr.forEach(function(op){
+    var s=opStats[op];
+    oh+='<tr>';
+    oh+='<td><strong>'+op+'</strong></td>';
+    oh+='<td style="text-align:center;font-weight:700;color:var(--bm)">'+s.motos+'</td>';
+    oh+='<td style="font-family:monospace;font-weight:600">'+fmt(s.ingresos)+'</td>';
+    oh+='<td style="font-family:monospace;color:var(--mu)">'+fmt(s.motos?Math.round(s.ingresos/s.motos):0)+'</td>';
+    oh+='</tr>';
+  });
+  oh+='</tbody></table>';
+  var ot=document.getElementById("top-operarios");
+  if(ot)ot.innerHTML=oh||'<div class="emp">Sin datos</div>';
+
+  // Excel mensual
+  var bxm=document.getElementById("btnExcelMes");
+  if(bxm)bxm.onclick=function(){exportExcelMes(mes,l);};
+}
+
+function exportExcelMes(mes,l){
+  var wb=XLSX.utils.book_new();
+  var f1=[["#","Placa","Cliente","Servicio","Precio COP","Metodo pago","Celular","Operario","Duracion","Hora entrada","Hora cierre"]];
+  l.sort(function(a,b){return a.id-b.id;}).forEach(function(o){
+    f1.push([o.num,o.placa,o.cliente||"",o.servicio,o.precio,o.metodoPago||"",o.celular||"",o.operarioLavado||o.cerradoPor||"",o.dur||"",o.horaA||"",o.horaC||""]);
+  });
+  var w1=XLSX.utils.aoa_to_sheet(f1);XLSX.utils.book_append_sheet(wb,w1,"Mes "+mes);
+
+  // Por operario
+  var opStats={};
+  l.forEach(function(o){
+    var op=o.operarioLavado||o.cerradoPor||"desconocido";
+    if(!opStats[op])opStats[op]={motos:0,ingresos:0};
+    opStats[op].motos++;
+    opStats[op].ingresos+=(o.metodoPago==="GRATIS - Premio promocion"?0:o.precio);
+  });
+  var f2=[["Operario","Motos","Ingresos COP","Promedio/moto"]];
+  Object.keys(opStats).forEach(function(op){var s=opStats[op];f2.push([op,s.motos,s.ingresos,s.motos?Math.round(s.ingresos/s.motos):0]);});
+  var w2=XLSX.utils.aoa_to_sheet(f2);XLSX.utils.book_append_sheet(wb,w2,"Por operario");
+
+  // Promos del mes
+  var promos=l.filter(function(o){return o.metodoPago==="GRATIS - Premio promocion";});
+  var f3=[["Fecha","Placa","Cliente","Servicio","Operario"]];
+  promos.forEach(function(o){f3.push([o.fechaC,o.placa,o.cliente||"",o.servicio,o.operarioLavado||o.cerradoPor||""]);});
+  var w3=XLSX.utils.aoa_to_sheet(f3);XLSX.utils.book_append_sheet(wb,w3,"Promociones");
+
+  XLSX.writeFile(wb,"MotoWash-"+mes+".xlsx");
+}
+
 
 document.getElementById("promoN").addEventListener("input",function(){
   document.getElementById("promoNLabel").textContent=this.value;
