@@ -316,6 +316,14 @@ tbody tr:hover{background:var(--bbg)}
 
       <!-- Tarjetas por lavador -->
       <div id="tnomina"></div>
+
+      <!-- Lista de lavadores registrados -->
+      <div class="card" style="margin-top:14px">
+        <div class="ch">
+          <div class="ct">&#128119; Lavadores registrados</div>
+        </div>
+        <div id="listLavadores"></div>
+      </div>
     </div>
 
     <!-- CLIENTES -->
@@ -450,13 +458,29 @@ tbody tr:hover{background:var(--bbg)}
         <option>GRATIS - Premio promocion</option>
       </select>
     </div>
-    <div class="fi" style="margin-bottom:10px"><label>Operario que lavo la moto</label>
-      <input id="mopLav" type="text" placeholder="Nombre del operario..." autocomplete="off">
+    <div class="fi" style="margin-bottom:10px"><label>&#128119; Lavador que hizo el servicio</label>
+      <select id="mopLav">
+        <option value="">-- Selecciona lavador --</option>
+      </select>
     </div>
     <div class="fi"><label>Precio final (COP $)</label><input id="mpr" type="number" min="0" step="500"></div>
     <div class="ma2">
       <button class="btn" onclick="cModal()">Cancelar</button>
       <button class="btn bp" onclick="cobrar()">&#10003; Confirmar pago</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- MODAL TICKET NOMINA -->
+<div class="mb" id="mticketNom">
+  <div class="mo" style="max-width:340px">
+    <h3>Comprobante de pago</h3>
+    <p class="msub">Ticket de nomina por lavador</p>
+    <div id="tcontNom"></div>
+    <div class="ma2">
+      <button class="btn" onclick="cTicketNom()">Cerrar</button>
+      <button class="btn bp" onclick="printTicketNom()">&#128424; Imprimir</button>
     </div>
   </div>
 </div>
@@ -470,6 +494,29 @@ tbody tr:hover{background:var(--bbg)}
     <div class="ma2">
       <button class="btn" onclick="cTicket()">Cerrar</button>
       <button class="btn bp" onclick="printTicket()">&#128424; Imprimir</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- MODAL LAVADOR -->
+<div class="mb" id="mLav">
+  <div class="mo">
+    <h3 id="mLavTit">Nuevo lavador</h3>
+    <p class="msub">Datos del lavador</p>
+    <div class="fg">
+      <div class="fi"><label>Nombre completo</label><input id="lavNom" type="text" placeholder="Nombre del lavador"></div>
+      <div class="fi"><label>Celular</label><input id="lavCel" type="tel" placeholder="300 000 0000"></div>
+      <div class="fi"><label>Estado</label>
+        <select id="lavAct">
+          <option value="1">Activo</option>
+          <option value="0">Inactivo</option>
+        </select>
+      </div>
+    </div>
+    <div class="ma2">
+      <button class="btn" onclick="cLavModal()">Cancelar</button>
+      <button class="btn bp" onclick="saveLavador()">Guardar</button>
     </div>
   </div>
 </div>
@@ -553,10 +600,12 @@ function listen(){
     empresa=d.empresa||{nombre:"MotoWash R&P",nit:"",telefono:"",direccion:"",ciudad:"",slogan:""};
     promoCfg=d.promo||{n:5,activa:true};
     nominaCfg=d.nomina||{porcentaje:30,activa:true};
+    lavadores=Object.values(d.lavadores||{});
     var np=document.getElementById("nomPct");
     if(np)np.value=nominaCfg.porcentaje||30;
     var nl=document.getElementById("nomPctLabel");
     if(nl)nl.textContent=(nominaCfg.porcentaje||30)+"%";
+    pobLavSelect();
     if(!srvs.length){
       srvs=[
         {id:"s1",nombre:"Lavado basico",precio:8000},
@@ -661,7 +710,7 @@ function showTab(t){
   if(t==="mensual"){rRepMes();}
   if(t==="promos")rPromos();
   if(t==="ranking")rRanking();
-  if(t==="nomina")rNomina();
+  if(t==="nomina"){rNomina();rLavadores();}
   if(t==="config")rConf();
   if(t==="clientes")rClientes();
 }
@@ -676,7 +725,7 @@ function refresh(){
   if(id==="mensual")rRepMes();
   if(id==="promos")rPromos();
   if(id==="ranking")rRanking();
-  if(id==="nomina")rNomina();
+  if(id==="nomina"){rNomina();rLavadores();}
   if(id==="clientes")rClientes();
 }
 
@@ -824,6 +873,9 @@ function aModal(id){
     mpa.style.display="none";
     mpag.value="Efectivo";
   }
+  // Resetear operario
+  var mop=document.getElementById("mopLav");
+  if(mop)mop.value="";
   document.getElementById("mpago").classList.add("open");
 }
 
@@ -1528,6 +1580,7 @@ function rNomina(){
     h+='<div class="nom-stat"><div class="nom-sv">'+s.motos+'</div><div class="nom-sl">Motos</div></div>';
     h+='<div class="nom-stat"><div class="nom-sv">'+fmt(s.ingresos)+'</div><div class="nom-sl">Generado</div></div>';
     h+='<div class="nom-stat highlight"><div class="nom-sv green">'+fmt(pago)+'</div><div class="nom-sl">A pagar ('+pct+'%)</div></div>';
+    h+='<div class="nom-stat" style="display:flex;align-items:center;justify-content:center"><button class="btn bp" style="font-size:11px;padding:6px 10px" onclick="ticketNomina(\''+op+'\')">&#128424; Ticket</button></div>';
     if(s.gratis>0){
       h+='<div class="nom-stat"><div class="nom-sv" style="color:var(--or)">'+s.gratis+'</div><div class="nom-sl">Gratis</div></div>';
     }
@@ -1616,6 +1669,181 @@ function toggleNomPeriodo(){
   var dw=document.getElementById("nomDiaWrap");
   if(mw)mw.style.display=v==="mes"?"":"none";
   if(dw)dw.style.display=v==="dia"?"":"none";
+}
+
+
+// ============================================================
+// LAVADORES - CRUD + NOMINA
+// ============================================================
+var lavadores=[];
+var editLavId=null;
+
+function gLavador(l){return db.ref("/lavadores/"+l.id).set(l);}
+function dLavador(id){return db.ref("/lavadores/"+id).remove();}
+
+// Poblar select de lavadores en modal de cobro
+function pobLavSelect(){
+  var s=document.getElementById("mopLav");
+  if(!s)return;
+  var activos=lavadores.filter(function(l){return l.activo!==false;});
+  if(activos.length===0){
+    s.innerHTML='<option value="">-- Sin lavadores registrados --</option>';
+    s.style.display="";
+    return;
+  }
+  s.innerHTML='<option value="">-- Selecciona lavador --</option>';
+  activos.forEach(function(l){
+    var op=document.createElement("option");
+    op.value=l.nombre;
+    op.textContent=l.nombre;
+    s.appendChild(op);
+  });
+}
+
+// CRUD Lavadores
+function openLavModal(id){
+  editLavId=id||null;
+  var tit=document.getElementById("mLavTit");
+  var nom=document.getElementById("lavNom");
+  var cel=document.getElementById("lavCel");
+  var act=document.getElementById("lavAct");
+  if(id){
+    var lav=lavadores.find(function(l){return l.id===id;});
+    if(!lav)return;
+    if(tit)tit.textContent="Editar lavador";
+    if(nom)nom.value=lav.nombre||"";
+    if(cel)cel.value=lav.celular||"";
+    if(act)act.value=lav.activo===false?"0":"1";
+  }else{
+    if(tit)tit.textContent="Nuevo lavador";
+    if(nom)nom.value="";
+    if(cel)cel.value="";
+    if(act)act.value="1";
+  }
+  document.getElementById("mLav").classList.add("open");
+}
+function cLavModal(){document.getElementById("mLav").classList.remove("open");editLavId=null;}
+
+function saveLavador(){
+  var nom=(document.getElementById("lavNom").value||"").trim().toUpperCase();
+  var cel=(document.getElementById("lavCel").value||"").trim();
+  var act=document.getElementById("lavAct").value==="1";
+  if(!nom){alert("Escribe el nombre del lavador");return;}
+  var lav={
+    id:editLavId||("lav"+Date.now()),
+    nombre:nom,
+    celular:cel,
+    activo:act,
+    creado:editLavId?(lavadores.find(function(l){return l.id===editLavId;})||{}).creado||hoy():hoy()
+  };
+  gLavador(lav).then(function(){cLavModal();});
+}
+
+function delLavador(id){
+  if(!confirm("Eliminar lavador?"))return;
+  dLavador(id);
+}
+
+function rLavadores(){
+  var c=document.getElementById("listLavadores");if(!c)return;
+  var header='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px"><div style="font-size:13px;color:var(--mu)">'+lavadores.length+' lavadores</div><button class="btn bp" onclick="openLavModal()">+ Nuevo lavador</button></div>';
+  if(!lavadores.length){
+    c.innerHTML=header+'<div class="emp"><div class="ei">&#128119;</div>Sin lavadores registrados</div>';
+    return;
+  }
+  var h=header;
+  lavadores.forEach(function(lav){
+    var activos_tot=ords.filter(function(o){return o.estado==="cerrada"&&o.operarioLavado===lav.nombre;}).length;
+    var mes_tot=ords.filter(function(o){return o.estado==="cerrada"&&o.operarioLavado===lav.nombre&&o.fechaC&&o.fechaC.startsWith(mesActual());}).length;
+    h+='<div class="cli-card">';
+    h+='<div class="cli-info"><h4>'+lav.nombre+'</h4>';
+    h+='<p>'+(lav.celular||"Sin celular")+'</p>';
+    h+='<p style="margin-top:4px"><span class="ba '+(lav.activo!==false?"bad":"bap")+'">'+( lav.activo!==false?"Activo":"Inactivo")+'</span>';
+    h+=' &nbsp;Motos hoy: <strong>'+ords.filter(function(o){return o.estado==="cerrada"&&o.operarioLavado===lav.nombre&&o.fechaC===hoy();}).length+'</strong>';
+    h+=' &nbsp;Mes: <strong>'+mes_tot+'</strong></p></div>';
+    h+='<div class="cli-meta"><div class="lavadas">'+activos_tot+'</div><div class="sub">total lavadas</div>';
+    h+='<div style="display:flex;gap:4px;margin-top:6px">'+rowBtn("bs","&#9998;","openLavModal",lav.id)+rowBtn("br2","&#10005;","delLavador",lav.id)+'</div></div></div>';
+  });
+  c.innerHTML=h;
+}
+
+// ============================================================
+// TICKET DE NOMINA POR LAVADOR
+// ============================================================
+function ticketNomina(nombreLav){
+  var periodoEl=document.getElementById("nomPeriodo");
+  var periodo=periodoEl?periodoEl.value:"mes";
+  var mesEl=document.getElementById("nomMes");
+  var mesVal=mesEl?mesEl.value:mesActual();
+
+  var lBase=ords.filter(function(o){return o.estado==="cerrada"&&o.operarioLavado===nombreLav;});
+  var lFilt;
+  if(periodo==="mes"){
+    lFilt=lBase.filter(function(o){return o.fechaC&&o.fechaC.startsWith(mesVal);});
+  }else if(periodo==="dia"){
+    var diaEl=document.getElementById("nomDia");
+    var diaVal=diaEl?diaEl.value:hoy();
+    lFilt=lBase.filter(function(o){return o.fechaC===diaVal;});
+  }else{
+    lFilt=lBase;
+  }
+
+  var pct=nominaCfg.porcentaje||30;
+  var totalIngresos=lFilt.filter(function(o){return o.metodoPago!=="GRATIS - Premio promocion";}).reduce(function(a,o){return a+o.precio;},0);
+  var totalPago=Math.round(totalIngresos*pct/100);
+  var gratis=lFilt.filter(function(o){return o.metodoPago==="GRATIS - Premio promocion";}).length;
+
+  // Agrupar por servicio
+  var srvMap={};
+  lFilt.filter(function(o){return o.metodoPago!=="GRATIS - Premio promocion";}).forEach(function(o){
+    if(!srvMap[o.servicio])srvMap[o.servicio]={cant:0,total:0};
+    srvMap[o.servicio].cant++;
+    srvMap[o.servicio].total+=o.precio;
+  });
+
+  var mp=mesVal.split("-");
+  var mNames=["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+  var periodoLabel=periodo==="mes"?mNames[parseInt(mp[1])-1]+" "+mp[0]:periodo==="dia"?fmtF(document.getElementById("nomDia")?document.getElementById("nomDia").value:hoy()):"Historial completo";
+
+  var h='<div class="tp" id="tin-nom">';
+  h+='<div class="tc">';
+  h+='<img class="tlg" src="'+LOGO+'">';
+  h+='<div class="ttt">'+(empresa.nombre||"MOTOWASH R&P")+'</div>';
+  if(empresa.telefono)h+='<div class="tsb">Tel: '+empresa.telefono+'</div>';
+  h+='</div>';
+  h+='<hr class="tl">';
+  h+='<div class="tc" style="font-size:13px;font-weight:700;margin:4px 0">COMPROBANTE DE PAGO</div>';
+  h+='<hr class="tl">';
+  h+='<div class="trr"><span>Lavador</span><span><b>'+nombreLav+'</b></span></div>';
+  h+='<div class="trr"><span>Periodo</span><span>'+periodoLabel+'</span></div>';
+  h+='<div class="trr"><span>Porcentaje</span><span>'+pct+'%</span></div>';
+  h+='<hr class="tl">';
+  h+='<div style="font-size:10px;font-weight:700;color:#666;margin-bottom:4px">DETALLE DE SERVICIOS</div>';
+  Object.keys(srvMap).forEach(function(srv){
+    var s=srvMap[srv];
+    h+='<div class="trr"><span>'+srv+' (x'+s.cant+')</span><span>'+fmt(s.total)+'</span></div>';
+  });
+  if(gratis>0)h+='<div class="trr"><span>Gratis (x'+gratis+')</span><span>$0</span></div>';
+  h+='<hr class="tl">';
+  h+='<div class="trr"><span>Motos lavadas</span><span><b>'+lFilt.length+'</b></span></div>';
+  h+='<div class="trr"><span>Total generado</span><span><b>'+fmt(totalIngresos)+'</b></span></div>';
+  h+='<div class="tto"><span>PAGO ('+pct+'%)</span><span>'+fmt(totalPago)+'</span></div>';
+  h+='<hr class="tl">';
+  h+='<div class="tc tth">Generado: '+new Date().toLocaleDateString("es-CO")+'<br>'+( empresa.nombre||"MotoWash R&P")+'</div>';
+  h+='</div>';
+
+  document.getElementById("tcontNom").innerHTML=h;
+  document.getElementById("mticketNom").classList.add("open");
+}
+
+function cTicketNom(){document.getElementById("mticketNom").classList.remove("open");}
+
+function printTicketNom(){
+  var el=document.getElementById("tin-nom");if(!el)return;
+  var pa=document.getElementById("pa");
+  pa.innerHTML=el.outerHTML;pa.style.display="block";
+  window.print();
+  setTimeout(function(){pa.style.display="none";pa.innerHTML="";},1500);
 }
 
 document.getElementById("promoN").addEventListener("input",function(){
