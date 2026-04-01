@@ -64,6 +64,8 @@ body{font-family:"Inter",sans-serif;background:var(--bg);color:var(--tx);font-si
 .fg{display:grid;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));gap:10px;margin-bottom:14px}
 .fi label{display:block;font-size:11px;font-weight:600;color:var(--mu);margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em}
 .fi input,.fi select{width:100%;padding:9px 11px;border:1px solid var(--bd2);border-radius:var(--r);font-family:"Inter",sans-serif;font-size:14px;color:var(--tx);background:var(--s2);outline:none;transition:all .15s}
+.fi input[type="text"]{text-transform:uppercase}
+.fi input[type="tel"]{text-transform:uppercase}
 .fi input:focus,.fi select:focus{border-color:var(--blt);box-shadow:0 0 0 3px var(--bbg);background:#fff}
 .fi input:disabled{background:#f1f5f9;color:var(--mu);cursor:not-allowed}
 .btn{padding:9px 16px;border-radius:var(--r);border:1px solid var(--bd2);font-family:"Inter",sans-serif;font-size:13px;font-weight:500;cursor:pointer;transition:all .15s;background:#fff;color:var(--tx);white-space:nowrap}
@@ -152,8 +154,9 @@ tbody tr:hover{background:var(--bbg)}
   .tabs{padding:3px;gap:1px}
   .tab{font-size:10px;padding:7px 2px;min-width:48px}
 }
-.bwa{background:#dcfce7;color:#166534;border-color:#86efac;font-size:12px;padding:5px 10px;font-weight:600}
-.bwa:hover{background:#bbf7d0}
+.bwa{background:#25D366;color:#fff;border-color:#25D366;font-size:12px;padding:5px 10px;font-weight:600;display:inline-flex;align-items:center;gap:4px}
+.bwa:hover{background:#128C7E;border-color:#128C7E}
+.bwa svg{flex-shrink:0}
 .comp-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}
 .rank-medal{font-size:18px}
 .op-card{background:#fff;border:1px solid var(--bd);border-radius:var(--rl);padding:14px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;box-shadow:var(--sh)}
@@ -259,7 +262,7 @@ tbody tr:hover{background:var(--bbg)}
       <div class="card">
         <div class="ch">
           <div class="ct">Base de clientes</div>
-          <input id="filtCli" type="text" placeholder="Buscar por nombre o placa..." style="padding:7px 12px;border:1px solid var(--bd2);border-radius:var(--r);font-size:13px;outline:none;width:220px" oninput="rClientes()">
+          <input id="filtCli" type="text" placeholder="Buscar por nombre o placa..." style="text-transform:uppercase" style="padding:7px 12px;border:1px solid var(--bd2);border-radius:var(--r);font-size:13px;outline:none;width:220px" oninput="rClientes()">
         </div>
         <div id="listCli"></div>
       </div>
@@ -270,7 +273,7 @@ tbody tr:hover{background:var(--bbg)}
       <div class="card">
         <div class="ct" style="margin-bottom:14px">Buscar historial por placa</div>
         <div class="sbx">
-          <div class="fi" style="flex:1;margin:0"><input id="bp2" type="text" placeholder="Escribe la placa..." oninput="this.value=this.value.toUpperCase()" onkeydown="if(event.key==='Enter')buscar()"></div>
+          <div class="fi" style="flex:1;margin:0"><input id="bp2" type="text" placeholder="Escribe la placa..." style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase()" onkeydown="if(event.key==='Enter')buscar()"></div>
           <button class="btn bp" onclick="buscar()">Buscar</button>
         </div>
         <div id="rbusq"></div>
@@ -353,7 +356,7 @@ tbody tr:hover{background:var(--bbg)}
         <div class="ct" style="margin-bottom:14px">Servicios y tarifas</div>
         <div id="lsrvs"></div>
         <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
-          <div class="fi" style="flex:1;min-width:130px;margin:0"><input id="cn2" type="text" placeholder="Nombre del servicio"></div>
+          <div class="fi" style="flex:1;min-width:130px;margin:0"><input id="cn2" type="text" placeholder="Nombre del servicio" style="text-transform:uppercase"></div>
           <div class="fi" style="width:120px;margin:0"><input id="cp2" type="number" placeholder="Precio COP"></div>
           <button class="btn bp" onclick="addSrv()">+ Agregar</button>
         </div>
@@ -549,9 +552,9 @@ function setupTabs(){
     {id:"pendientes",l:"Pendientes",b:true},
     {id:"cerradas",l:"Cerradas"},
     {id:"reporte",l:"Reporte"},
-    {id:"mensual",l:"Mensual"},
-    {id:"ranking",l:"Ranking"},
-    {id:"promos",l:"Promos"},
+    {id:"mensual",l:"Mensual",a:true},
+    {id:"ranking",l:"Ranking",a:true},
+    {id:"promos",l:"Promos",a:true},
     {id:"clientes",l:"Clientes"},
     {id:"busqueda",l:"Buscar"},
     {id:"config",l:"Config",a:true}
@@ -681,7 +684,7 @@ function crearOrden(){
   var s=document.getElementById("ns");
   var so=srvs[s.selectedIndex]||{};
   var pr=parseInt(document.getElementById("npr").value)||0;
-  var nomCli=document.getElementById("ncli").value.trim();
+  var nomCli=document.getElementById("ncli").value.trim().toUpperCase();
   var celCli=document.getElementById("ncel").value.trim();
   var id=Date.now().toString();
   var o={
@@ -756,7 +759,7 @@ function cobrar(){
   var o=ords.find(function(x){return x.id===pId;});
   if(!o)return;
   var hC=hora();
-  var opLav=document.getElementById("mopLav").value.trim()||cu;
+  var opLav=(document.getElementById("mopLav").value.trim()||cu).toUpperCase();
   var u=Object.assign({},o,{
     estado:"cerrada",
     metodoPago:document.getElementById("mpag").value,
@@ -795,7 +798,7 @@ function rPend(){
     h+='<td style="font-family:monospace;font-weight:600">'+precio+'</td>';
     h+='<td style="font-size:12px">'+(o.celular||"&mdash;")+'</td>';
     h+='<td><div class="tda">'+rowBtn("bg2","Cobrar","aModal",o.id);
-    if(o.celular)h+=rowBtn("bwa","&#128232;","waCliente",o.id);
+    if(o.celular)h+=rowBtn("bwa","<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"#fff\"><path d=\"M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z\"/></svg>","waCliente",o.id);
     if(isA)h+=rowBtn("br2","&#10005;","cancelOrden",o.id);
     h+='</div></td></tr>';
   });
@@ -819,7 +822,7 @@ function rCer(){
     h+='<td style="font-family:monospace;font-weight:600">'+(esG?'<span class="ba baf">&#127873; GRATIS</span>':fmt(o.precio))+'</td>';
     h+='<td style="font-size:12px">'+(esG?"Premio":o.metodoPago)+'</td>';
     h+='<td><span class="ba bap">'+(o.dur||"&mdash;")+'</span></td>';
-    h+='<td><div class="tda">'+rowBtn("bk","&#129534;","verTicket",o.id)+(o.celular?rowBtn("bwa","&#128232;","waCerrada",o.id):"")+'</div></td>';
+    h+='<td><div class="tda">'+rowBtn("bk","&#129534;","verTicket",o.id)+(o.celular?rowBtn("bwa","<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"#fff\"><path d=\"M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z\"/></svg>","waCerrada",o.id):"")+'</div></td>';
     h+='</tr>';
   });
   var t=l.reduce(function(a,o){return a+o.precio;},0);
@@ -940,7 +943,7 @@ function editCli(id){
 function cCliModal(){document.getElementById("mcli").classList.remove("open");editCliId=null;}
 
 function saveCli(){
-  var nom=document.getElementById("cliNom").value.trim();
+  var nom=document.getElementById("cliNom").value.trim().toUpperCase();
   var tel=document.getElementById("cliTel").value.trim();
   var pla=document.getElementById("cliPla").value.trim().toUpperCase();
   if(!nom&&!pla){alert("Ingresa nombre o placa");return;}
@@ -1083,12 +1086,12 @@ function rConf(){
 
 function saveEmpresa(){
   empresa={
-    nombre:document.getElementById("eNom").value.trim(),
+    nombre:document.getElementById("eNom").value.trim().toUpperCase(),
     nit:document.getElementById("eNit").value.trim(),
     telefono:document.getElementById("eTel").value.trim(),
-    direccion:document.getElementById("eDir").value.trim(),
-    ciudad:document.getElementById("eCiu").value.trim(),
-    slogan:document.getElementById("eSlo").value.trim()
+    direccion:document.getElementById("eDir").value.trim().toUpperCase(),
+    ciudad:document.getElementById("eCiu").value.trim().toUpperCase(),
+    slogan:document.getElementById("eSlo").value.trim().toUpperCase()
   };
   gEmpresa().then(function(){alert("Datos de empresa guardados.");});
 }
@@ -1103,7 +1106,7 @@ function savePromo(){
 }
 
 function addSrv(){
-  var n=document.getElementById("cn2").value.trim();
+  var n=document.getElementById("cn2").value.trim().toUpperCase();
   var p=parseInt(document.getElementById("cp2").value)||0;
   if(!n||!p){alert("Completa nombre y precio");return;}
   srvs.push({id:"s"+Date.now(),nombre:n,precio:p});
